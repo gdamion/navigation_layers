@@ -27,12 +27,35 @@ public:
 
   RangeSensorLayer();
 
+  /** @brief This is called at the end of initialize().  Override to
+   * implement subclass-specific initialization.
+   *
+   * tf_, name_, and layered_costmap_ will all be set already when this is called. */
   virtual void onInitialize();
+
+  /**
+   * @brief This is called by the LayeredCostmap to poll this plugin as to how
+   *        much of the costmap it needs to update. Each layer can increase
+   *        the size of this bounds.
+   *
+   * For more details, see "Layered Costmaps for Context-Sensitive Navigation",
+   * by Lu et. Al, IROS 2014.
+   */
   virtual void updateBounds(double robot_x, double robot_y, double robot_yaw,
                             double* min_x, double* min_y, double* max_x, double* max_y);
+
+  /**
+   * @brief Actually update the underlying costmap, only within the bounds
+   *        calculated during UpdateBounds().
+   */
   virtual void updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j);
+
   virtual void reset();
+
+  /** @brief Stop publishers. */
   virtual void deactivate();
+
+  /** @brief Restart publishers if they've been stopped. */
   virtual void activate();
 
 private:

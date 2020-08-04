@@ -1,0 +1,42 @@
+{
+    "configurations": [
+        {
+            "browse": {
+                "databaseFilename": "",
+                "limitSymbolsToIncludedHeaders": true
+            },
+            "includePath": [
+                "/home/al/Code/catkin_ws_sber/devel/include/**",
+                "/home/al/grad_project/catkin_ws/devel/include/**",
+                "/opt/ros/melodic/include/**",
+                "/home/al/Code/catkin_ws_sber/src/courier/bumper_recovery/include/**",
+                "/home/al/Code/catkin_ws_sber/src/courier/costmap_prohibition_layer/include/**",
+                "/home/al/Code/catkin_ws_sber/src/courier/courier_ocam_ros/include/**",
+                "/home/al/Code/catkin_ws_sber/src/courier/courier_slam/include/**",
+                "/home/al/grad_project/catkin_ws/src/map_explore/frontier_exploration/exploration_server/include/**",
+                "/home/al/grad_project/catkin_ws/src/map_explore/explore_light/include/**",
+                "/home/al/grad_project/catkin_ws/src/map_explore/frontier_exploration/frontier_exploration/include/**",
+                "/home/al/Code/catkin_ws_sber/src/courier/leg_tracker/include/**",
+                "/home/al/grad_project/catkin_ws/src/multirobot_map_merge/include/**",
+                "/home/al/grad_project/catkin_ws/src/map_explore/frontier_exploration/polygon_layer/include/**",
+                "/home/al/Code/catkin_ws_sber/src/rms_courier/include/**",
+                "/home/al/grad_project/catkin_ws/src/rosepl_wrapper_cn/include/**",
+                "/home/al/grad_project/catkin_ws/src/rosepl_wrapper_mn/include/**",
+                "/home/al/Code/catkin_ws_sber/src/courier/rs_depth_proc/include/**",
+                "/home/al/grad_project/catkin_ws/src/slam_toolbox/slam_toolbox/include/**",
+                "/home/al/grad_project/catkin_ws/src/tb3_group_pgslam/tb3_gazebo/include/**",
+                "/home/al/grad_project/catkin_ws/src/tb3_group_pgslam/tb3_slam/include/**",
+                "/home/al/grad_project/catkin_ws/src/turtlebot3/turtlebot3_simulations/turtlebot3_fake/include/**",
+                "/home/al/grad_project/catkin_ws/src/turtlebot3/turtlebot3_simulations/turtlebot3_gazebo/include/**",
+                "/home/al/grad_project/catkin_ws/src/turtlebot3/turtlebot3/turtlebot3_slam/include/**",
+                "/usr/include/**"
+            ],
+            "name": "ROS",
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++14"
+        }
+    ],
+    "version": 4
+}
