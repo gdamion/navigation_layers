@@ -31,6 +31,7 @@ public:
    * implement subclass-specific initialization.
    *
    * tf_, name_, and layered_costmap_ will all be set already when this is called. */
+  // Инициализация, подписка на топики, парсинг входных данных, подклюение Dynamic Reconfigure
   virtual void onInitialize();
 
   /**
@@ -41,6 +42,8 @@ public:
    * For more details, see "Layered Costmaps for Context-Sensitive Navigation",
    * by Lu et. Al, IROS 2014.
    */
+  // Обнновление положение датчика, костмапы, мин и макс расстояний приема
+  // Варнинг если установлен таймаут на данные в параметре, вызов resetRange и updateCostmap
   virtual void updateBounds(double robot_x, double robot_y, double robot_yaw,
                             double* min_x, double* min_y, double* max_x, double* max_y);
 
@@ -48,47 +51,88 @@ public:
    * @brief Actually update the underlying costmap, only within the bounds
    *        calculated during UpdateBounds().
    */
+  // Обновляет стоимости в поданном квадрате. Ниже clear_thre => чистит. Выше mark_thre => наносит
+  // Обновляет буфер прошлого значения ячейки костмапа
   virtual void updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j);
 
+  // Перезагрузка слоя: вызов deactivate() и activate()
   virtual void reset();
 
   /** @brief Stop publishers. */
+  // Чистит буфер сообщений
   virtual void deactivate();
 
   /** @brief Restart publishers if they've been stopped. */
+  // Чистит буфер сообщений
   virtual void activate();
 
 private:
+  // Обновление основных переменных при диагностической реконфигурации
   void reconfigureCB(range_sensor_layer::RangeSensorLayerConfig &config, uint32_t level);
 
+  // буферизация входного сообщения расстояния
   void bufferIncomingRangeMsg(const sensor_msgs::RangeConstPtr& range_message);
+
+  // обработка входного сообщения типа Range
   void processRangeMsg(sensor_msgs::Range& range_message);
+
+  // обработка входного сообщения типа Range при max_range == min_range,
+  // вызывает updateCostmap(sensor_msgs::Range& range_message, bool clear_sensor_cone) в коцне работы
   void processFixedRangeMsg(sensor_msgs::Range& range_message);
+
+  // обработка входного сообщения типа Range при max_range > min_range,
+  // вызывает updateCostmap(sensor_msgs::Range& range_message, bool clear_sensor_cone) в коцне работы
   void processVariableRangeMsg(sensor_msgs::Range& range_message);
 
+  // сброс показаний о минимальном и максимальном расстояниях
   void resetRange();
+
+  // вызывается в updateBounds()
+  // обновление костмапа показаниями из буфера сообщений
+  // вызываетс processRangeMessageFunc_() для обработки сообщений в конце
   void updateCostmap();
+
+  // обновляет костмап при полученном сообщении
+  // поялвяется в конце обработчиков сообщений
+  //
+  // последовательность вызовов такова:
+  // updateBounds -> updateCostmap() -> processRangeMessageFunc_() -> processRangeMsg / processFixedRangeMsg / processVariableRangeMsg
+  //  -> updateCostmap(перегрузка с входными переменными, то есть версия ниже) -> updateCell()
   void updateCostmap(sensor_msgs::Range& range_message, bool clear_sensor_cone);
 
+  // Используется для математики в sensor_model()
   double gamma(double theta);
   double delta(double phi);
+
+  // Вычисление вероятности того, что датчик верно определил перед собой препятствие
   double sensor_model(double r, double phi, double theta);
 
+  // Место использования не найдено
   void get_deltas(double angle, double *dx, double *dy);
+
+  // Обновление ячейки костмапа
   void update_cell(double ox, double oy, double ot, double r, double nx, double ny, bool clear);
 
+  // Перевод из цифровых значений костмапа в вероятность препятствия ( 128 -> 0.5 )
   double to_prob(unsigned char c)
   {
     return static_cast<double>(c) / costmap_2d::LETHAL_OBSTACLE;
   }
+
+  // Перевод из вероятности препятствия в цифровые значения костмапа ( 0.5 -> 128 )
   unsigned char to_cost(double p)
   {
     return static_cast<unsigned char>(p * costmap_2d::LETHAL_OBSTACLE);
   }
 
+  // Обработка сообщений
   boost::function<void(sensor_msgs::Range& range_message)> processRangeMessageFunc_;
+
   boost::mutex range_message_mutex_;
+
+  // Буфер сообщений с типа Range с показаниями сенсора
   std::list<sensor_msgs::Range> range_msgs_buffer_;
+
 
   double max_angle_, phi_v_;
   double inflate_cone_;
