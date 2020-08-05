@@ -128,33 +128,78 @@ private:
   // Обработка сообщений
   boost::function<void(sensor_msgs::Range& range_message)> processRangeMessageFunc_;
 
+  // Мьютекс (англ. mutex, от mutual exclusion — «взаимное исключение») — это базовый механизм синхронизации.
+  // Он предназначен для организации взаимоисключающего доступа к общим данным для нескольких потоков с
+  // использованием барьеров памяти (для простоты можно считать мьютекс дверью, ведущей к общим данным).
   boost::mutex range_message_mutex_;
 
   // Буфер сообщений с типа Range с показаниями сенсора
   std::list<sensor_msgs::Range> range_msgs_buffer_;
 
+  // Угол обзора сенсора / 2
+  double max_angle_;
 
-  double max_angle_, phi_v_;
+  // Значение Phi
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием phi
+  // Значение по умолчанию: 1.2
+  double phi_v_;
+
+  // Inflate the triangular area covered by the sensor (percentage)
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием inflate_cone
+  // Значение по умолчанию: 1
   double inflate_cone_;
+
+  // Переменная для хранения названия глобальной системы координат
   std::string global_frame_;
 
-  double clear_threshold_, mark_threshold_;
+  // Probability below which cells are marked as free
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием clear_threshold
+  // Значение по умолчанию: 0.2
+  double clear_threshold_;
+
+  // Probability above which cells are marked as occupied
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием mark_threshold
+  // Значение по умолчанию: 0.8
+  double mark_threshold_;
+
+  // Clear on max reading
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием clear_on_max_reading
+  // Значение по умолчанию: False
   bool clear_on_max_reading_;
 
+  // No Readings Timeout
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием
+  // Значение по умолчанию: 0.0
   double no_readings_timeout_;
-  ros::Time last_reading_time_;
-  unsigned int buffered_readings_;
-  std::vector<ros::Subscriber> range_subs_;
-  double min_x_, min_y_, max_x_, max_y_;
 
+  // Время с последнего вызова updateCostmap(range_message, clear_sensor_cone) и получения данных сенсора
+  // Используется для детектирования отсуствия входных данных при включенном параметре no_readings_timeout
+  ros::Time last_reading_time_;
+
+  // Количество буферизованных сообщений
+  unsigned int buffered_readings_;
+
+  // Список топиков с показаниями сенсоров
+  std::vector<ros::Subscriber> range_subs_;
+
+  // Минимальные координаты квадрата костмапас
+  double min_x_, min_y_;
+
+  // Максимальные координаты квадрата костмапас
+  double max_x_, max_y_;
+
+  // Сервис для динамической реконфигурации переменных
   dynamic_reconfigure::Server<range_sensor_layer::RangeSensorLayerConfig> *dsrv_;
 
-
+  // Determine barycentric coordinates
+  // Используется updateCostmap(range_message, clear_sensor_cone)
   float area(int x1, int y1, int x2, int y2, int x3, int y3)
   {
     return fabs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2.0);
   };
 
+  // Barycentric coordinates inside area threshold; this is not mathematically sound at all, but it works!
+  // Используется updateCostmap(range_message, clear_sensor_cone)
   int orient2d(int Ax, int Ay, int Bx, int By, int Cx, int Cy)
   {
     return (Bx - Ax) * (Cy - Ay) - (By - Ay) * (Cx - Ax);
