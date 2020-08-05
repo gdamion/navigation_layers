@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
 )
 
+find_package(Eigen3 REQUIRED)
+
 generate_dynamic_reconfigure_options(cfg/RangeSensorLayer.cfg)
 
 catkin_package(
@@ -21,7 +23,11 @@ catkin_package(
     LIBRARIES range_sensor_layer
 )
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include     ${catkin_INCLUDE_DIRS}
+                                ${EIGEN3_INCLUDE_DIRS}
+)
+
+add_definitions(${EIGEN3_DEFINITIONS})
 
 add_library(${PROJECT_NAME} src/range_sensor_layer.cpp)
 add_dependencies(${PROJECT_NAME} ${range_sensor_layer_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

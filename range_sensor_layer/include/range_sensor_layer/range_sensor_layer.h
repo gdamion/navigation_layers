@@ -12,6 +12,11 @@
 #include <vector>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include <Eigen/Core>
+#include <Eigen/Dense>
+#include <Eigen/LU>
+#include <Eigen/QR>
+
 namespace range_sensor_layer
 {
 
@@ -155,12 +160,22 @@ private:
   // Probability below which cells are marked as free
   // Во ВХОДЫХ ПАРАМЕТРАХ под названием clear_threshold
   // Значение по умолчанию: 0.2
-  double clear_threshold_;
+  double us_clear_threshold_;
 
   // Probability above which cells are marked as occupied
   // Во ВХОДЫХ ПАРАМЕТРАХ под названием mark_threshold
   // Значение по умолчанию: 0.8
-  double mark_threshold_;
+  double us_mark_threshold_;
+
+  // Probability below which cells are marked as free
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием clear_threshold
+  // Значение по умолчанию: 0.2
+  double tof_clear_threshold_;
+
+  // Probability above which cells are marked as occupied
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием mark_threshold
+  // Значение по умолчанию: 0.8
+  double tof_mark_threshold_;
 
   // Clear on max reading
   // Во ВХОДЫХ ПАРАМЕТРАХ под названием clear_on_max_reading
@@ -168,13 +183,22 @@ private:
   bool clear_on_max_reading_;
 
   // No Readings Timeout
-  // Во ВХОДЫХ ПАРАМЕТРАХ под названием
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием no_readings_timeout
   // Значение по умолчанию: 0.0
   double no_readings_timeout_;
+
+  // Time of cell with obstacle life
+  // Во ВХОДЫХ ПАРАМЕТРАХ под названием time_of_life
+  // Значение по умолчанию: 2.0
+  double time_of_life_;
 
   // Время с последнего вызова updateCostmap(range_message, clear_sensor_cone) и получения данных сенсора
   // Используется для детектирования отсуствия входных данных при включенном параметре no_readings_timeout
   ros::Time last_reading_time_;
+
+  // Время с последнего вызова updateCostmap(range_message, clear_sensor_cone) и получения данных сенсора
+  // Используется для детектирования отсуствия входных данных при включенном параметре no_readings_timeout
+  ros::Time last_update_cycle_time_;
 
   // Количество буферизованных сообщений
   unsigned int buffered_readings_;
@@ -193,6 +217,12 @@ private:
   // INFRARED=1
   // TOF=3
   ushort radiation_type_;
+
+  bool first_cycle_;
+  // Eigen::Matrix<ros::Time, Dynamic, Dynamic> ExpireTime;
+  unsigned int map_num_rows_;
+  unsigned int map_num_cols_;
+  std::vector<std::vector<ros::Time>> expireTime_;
 
   // Сервис для динамической реконфигурации переменных
   dynamic_reconfigure::Server<range_sensor_layer::RangeSensorLayerConfig> *dsrv_;

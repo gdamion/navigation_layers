@@ -13,6 +13,7 @@
   <url>http://wiki.ros.org/range_sensor_layer</url>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>eigen</build_depend>
   <depend>angles</depend>
   <depend>costmap_2d</depend>
   <depend>dynamic_reconfigure</depend>
@@ -23,7 +24,8 @@
   <depend>sensor_msgs</depend>
   <depend>tf2_geometry_msgs</depend>
   <test_depend>roslint</test_depend>
-
+  <exec_depend>eigen</exec_depend>
+  
   <export>
     <costmap_2d plugin="${prefix}/costmap_plugins.xml"/>
   </export>

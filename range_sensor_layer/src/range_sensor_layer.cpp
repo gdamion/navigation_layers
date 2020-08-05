@@ -108,6 +108,7 @@ void RangeSensorLayer::onInitialize()
     boost::bind(&RangeSensorLayer::reconfigureCB, this, _1, _2);
   dsrv_->setCallback(cb);
   global_frame_ = layered_costmap_->getGlobalFrameID();
+  first_cycle_ = true;
 }
 
 
@@ -158,18 +159,21 @@ double RangeSensorLayer::sensor_model(double r, double phi, double theta)
 
 void RangeSensorLayer::reconfigureCB(range_sensor_layer::RangeSensorLayerConfig &config, uint32_t level)
 {
-  phi_v_ = config.phi;
-  inflate_cone_ = config.inflate_cone;
-  no_readings_timeout_ = config.no_readings_timeout;
-  clear_threshold_ = config.clear_threshold;
-  mark_threshold_ = config.mark_threshold;
-  clear_on_max_reading_ = config.clear_on_max_reading;
+    phi_v_ = config.phi;
+    inflate_cone_ = config.inflate_cone;
+    no_readings_timeout_ = config.no_readings_timeout;
+    us_clear_threshold_ = config.us_clear_threshold;
+    tof_clear_threshold_ = config.tof_clear_threshold;
+    us_mark_threshold_ = config.us_mark_threshold;
+    tof_mark_threshold_ = config.tof_mark_threshold;
+    clear_on_max_reading_ = config.clear_on_max_reading;
+    time_of_life_ = config.time_of_life;
 
-  if (enabled_ != config.enabled)
-  {
-    enabled_ = config.enabled;
-    current_ = false;
-  }
+    if (enabled_ != config.enabled)
+    {
+        enabled_ = config.enabled;
+        current_ = false;
+    }
 }
 
 void RangeSensorLayer::bufferIncomingRangeMsg(const sensor_msgs::RangeConstPtr& range_message)
@@ -289,6 +293,7 @@ void RangeSensorLayer::updateCostmap(sensor_msgs::Range& range_message, bool cle
   if (worldToMap(tx, ty, aa, ab))
   {
     setCost(aa, ab, 233);
+    expireTime_[aa][ab] = ros::Time::Time(time_of_life_);
     touch(tx, ty, &min_x_, &min_y_, &max_x_, &max_y_);
   }
 
@@ -380,6 +385,7 @@ void RangeSensorLayer::update_cell(double ox, double oy, double ot, double r, do
 
     ROS_DEBUG("%f %f | %f %f = %f", dx, dy, theta, phi, sensor);
     ROS_DEBUG("%f | %f %f | %f", prior, prob_occ, prob_not, new_prob);
+    expireTime_[x][y] = ros::Time::Time(time_of_life_ * new_prob);
     unsigned char c = to_cost(new_prob);
     setCost(x, y, c);
   }
@@ -394,6 +400,21 @@ void RangeSensorLayer::resetRange()
 void RangeSensorLayer::updateBounds(double robot_x, double robot_y, double robot_yaw,
                                     double* min_x, double* min_y, double* max_x, double* max_y)
 {
+  if (first_cycle_ == true)
+  {
+    ros::Time zero_time = ros::Time::Time(0);
+
+    map_num_cols_ = getSizeInCellsX();
+    map_num_rows_ = getSizeInCellsY();
+
+    expireTime_.resize(map_num_rows_, NULL);
+    for (uint i = 0; i < map_num_rows_; i++)
+      expireTime_[i].resize(map_num_cols_, zero_time); // this will allow you to now just use [][] to access stuff
+
+    last_update_cycle_time_ = ros::Time::now();
+    first_cycle_ = false;
+  }
+
   if (layered_costmap_->isRolling())
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
 
@@ -423,6 +444,24 @@ void RangeSensorLayer::updateBounds(double robot_x, double robot_y, double robot
       current_ = false;
     }
   }
+
+  //Tick timers and clear cell if timer is out
+  for (uint i = 0; i < map_num_cols_; i++)
+  {
+    for (uint j = 0; j < map_num_rows_; j++)
+    {
+      if (expireTime_[i][j] != ros::Time::Time(0))
+      {
+        expireTime_[i][j] = expireTime_[i][j] - (last_update_cycle_time_ - ros::Time::now());
+        if (expireTime_[i][j] <= ros::Time::Time(0))
+        {
+          setCost(i, j, 0);
+          expireTime_[i][j] = ros::Time::Time(0);
+        }
+      }
+    }
+  }
+  last_update_cycle_time_ = ros::Time::now()
 }
 
 void RangeSensorLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j)
@@ -432,7 +471,7 @@ void RangeSensorLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i
 
   unsigned char* master_array = master_grid.getCharMap();
   unsigned int span = master_grid.getSizeInCellsX();
-  unsigned char clear = to_cost(clear_threshold_), mark = to_cost(mark_threshold_);
+  unsigned char clear = to_cost(us_clear_threshold_), mark = to_cost(us_mark_threshold_);
 
   for (int j = min_j; j < max_j; j++)
   {
