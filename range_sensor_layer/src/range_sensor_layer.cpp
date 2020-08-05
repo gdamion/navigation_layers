@@ -367,10 +367,12 @@ void RangeSensorLayer::update_cell(double ox, double oy, double ot, double r, do
     double phi = sqrt(dx * dx + dy * dy);
     double sensor = 0.0;
     if (!clear)
+    {
       if (radiation_type_ == 0 || radiation_type_ == 1)
         sensor = sensor_model(r, phi, theta);
       else
         sensor = 1;
+    }
     double prior = to_prob(getCost(x, y));
     double prob_occ = sensor * prior;
     double prob_not = (1 - sensor) * (1 - prior);
