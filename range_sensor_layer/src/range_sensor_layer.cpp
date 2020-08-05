@@ -244,6 +244,7 @@ void RangeSensorLayer::processVariableRangeMsg(sensor_msgs::Range& range_message
 void RangeSensorLayer::updateCostmap(sensor_msgs::Range& range_message, bool clear_sensor_cone)
 {
   max_angle_ = range_message.field_of_view / 2;
+  radiation_type_ = range_message.radiation_type;
 
   geometry_msgs::PointStamped in, out;
   in.header.stamp = range_message.header.stamp;
@@ -366,7 +367,7 @@ void RangeSensorLayer::update_cell(double ox, double oy, double ot, double r, do
     double phi = sqrt(dx * dx + dy * dy);
     double sensor = 0.0;
     if (!clear)
-      sensor = sensor_model(r, phi, theta);
+      sensor = sensor_model(r, phi, theta) if (radiation_type_ == 0 || radiation_type_ == 1) else 1;
     double prior = to_prob(getCost(x, y));
     double prob_occ = sensor * prior;
     double prob_not = (1 - sensor) * (1 - prior);

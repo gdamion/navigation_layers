@@ -188,6 +188,12 @@ private:
   // Максимальные координаты квадрата костмапас
   double max_x_, max_y_;
 
+  // Тип излучения из сообщения sensor_msgs/Range.msg
+  // ULTRASOUND=0
+  // INFRARED=1
+  // TOF=3
+  ushort radiation_type_;
+
   // Сервис для динамической реконфигурации переменных
   dynamic_reconfigure::Server<range_sensor_layer::RangeSensorLayerConfig> *dsrv_;
 
