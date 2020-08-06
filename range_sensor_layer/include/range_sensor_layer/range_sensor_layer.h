@@ -190,8 +190,8 @@ private:
   // Time of cell with obstacle life
   // Во ВХОДЫХ ПАРАМЕТРАХ под названием time_of_life
   // Значение по умолчанию: 2.0
-  double time_of_life_;
 
+  double time_of_life_;
   // Время с последнего вызова updateCostmap(range_message, clear_sensor_cone) и получения данных сенсора
   // Используется для детектирования отсуствия входных данных при включенном параметре no_readings_timeout
   ros::Time last_reading_time_;
@@ -218,11 +218,52 @@ private:
   // TOF=3
   ushort radiation_type_;
 
+  bool first_cycle_;
 
   // Eigen::Matrix<ros::Time, Dynamic, Dynamic> ExpireTime;
-  unsigned int map_num_rows_;
-  unsigned int map_num_cols_;
-  std::vector<std::vector<ros::Duration>> expireTime_;
+  unsigned int map_num_X_;
+  unsigned int map_num_Y_;
+
+  std::vector <std::vector <double> > expireTime_;
+
+  void addTimers(unsigned int mx, unsigned int my, double time_of_life)
+  {
+      unsigned int vector_size;
+
+      vector_size = expireTime_.size()
+      for (unsigned int i = 0; i < vector_size; i++)
+      {
+        if (expireTime_[i][0] == mx && expireTime_[i][1] == my)
+        {
+          expireTime_[i][2] = time_of_life;
+          return ;
+        }
+      }
+
+      std::vector new_cell = {(double)mx, (double)my, time_of_life};
+      expireTime_.push_back(new_cell);
+  }
+
+  void updateTimers()
+  {
+    unsigned int vector_size;
+    unsigned int i;
+
+    vector_size = expireTime_.size()
+    i = 0;
+    while (i < vector_size)
+    {
+      if (expireTime_[i][2] <= 0)
+      {
+        setCost(expireTime_[i][0], expireTime_[i][1], costmap_2d::FREE_SPACE);
+        expireTime_.erase(i);
+        vector_size--;
+        continue;
+      }
+
+      expireTime_[i][2] -= ros::Duration(last_update_cycle_time_ - ros::Time::now()).toSec();
+    }
+  }
 
   // Сервис для динамической реконфигурации переменных
   dynamic_reconfigure::Server<range_sensor_layer::RangeSensorLayerConfig> *dsrv_;

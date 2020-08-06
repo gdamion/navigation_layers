@@ -109,13 +109,7 @@ void RangeSensorLayer::onInitialize()
   dsrv_->setCallback(cb);
   global_frame_ = layered_costmap_->getGlobalFrameID();
 
-  map_num_cols_ = getSizeInCellsX();
-  map_num_rows_ = getSizeInCellsY();
-
-  expireTime_.resize(map_num_rows_);
-  for (uint i = 0; i < map_num_rows_; i++)
-    expireTime_[i].resize(map_num_cols_, ros::Duration(0)); // this will allow you to now just use [][] to access stuff
-
+  first_cycle_ = true;
   last_update_cycle_time_ = ros::Time::now();
 }
 
@@ -301,7 +295,12 @@ void RangeSensorLayer::updateCostmap(sensor_msgs::Range& range_message, bool cle
   if (worldToMap(tx, ty, aa, ab))
   {
     setCost(aa, ab, to_cost(233));
-    expireTime_[aa][ab] = ros::Duration(time_of_life_);
+    ROS_INFO("Center point");
+    if (aa >= map_num_X_ || ab >= map_num_Y_)
+      ROS_WARN("values bigger than borders, %u %u", aa, ab);
+    // expireTime_[aa][ab] = time_of_life_;
+    addTimers(aa, ab, time_of_life_);
+    ROS_INFO("Center point stamped");
     touch(tx, ty, &min_x_, &min_y_, &max_x_, &max_y_);
   }
 
@@ -394,9 +393,14 @@ void RangeSensorLayer::update_cell(double ox, double oy, double ot, double r, do
     ROS_DEBUG("%f %f | %f %f = %f", dx, dy, theta, phi, sensor);
     ROS_DEBUG("%f | %f %f | %f", prior, prob_occ, prob_not, new_prob);
 
-    expireTime_[x][y] = ros::Duration(time_of_life_ * new_prob);
+    ROS_INFO("Peripheral point");
+    if (x >= map_num_X_ || y >= map_num_Y_)
+      ROS_WARN("values bigger than borders, %u %u", x, y);
+    expireTime_[x][y] = time_of_life_ * new_prob;
+    ROS_INFO("Peripheral point stamped");
 
     setCost(x, y, to_cost(new_prob));
+    addTimers(x, y, time_of_life_ * new_prob);
   }
 }
 
@@ -439,22 +443,10 @@ void RangeSensorLayer::updateBounds(double robot_x, double robot_y, double robot
     }
   }
 
-  //Tick timers and clear cell if timer is out
-  for (uint i = 0; i < map_num_cols_; i++)
-  {
-    for (uint j = 0; j < map_num_rows_; j++)
-    {
-      if (expireTime_[i][j] > ros::Duration(0))
-      {
-        expireTime_[i][j] = expireTime_[i][j] - ros::Duration(last_update_cycle_time_ - ros::Time::now());
-        if (expireTime_[i][j] <= ros::Duration(0))
-        {
-          setCost(i, j, costmap_2d::FREE_SPACE);
-          expireTime_[i][j] = ros::Duration(0);
-        }
-      }
-    }
-  }
+  // Tick timers and clear cell if timer is out
+  ROS_INFO("Before tick cycle");
+
+  ROS_INFO("After tick cycle");
   last_update_cycle_time_ = ros::Time::now();
 }
 
