@@ -108,7 +108,15 @@ void RangeSensorLayer::onInitialize()
     boost::bind(&RangeSensorLayer::reconfigureCB, this, _1, _2);
   dsrv_->setCallback(cb);
   global_frame_ = layered_costmap_->getGlobalFrameID();
-  first_cycle_ = true;
+
+  map_num_cols_ = getSizeInCellsX();
+  map_num_rows_ = getSizeInCellsY();
+
+  expireTime_.resize(map_num_rows_);
+  for (uint i = 0; i < map_num_rows_; i++)
+    expireTime_[i].resize(map_num_cols_, ros::Duration(0)); // this will allow you to now just use [][] to access stuff
+
+  last_update_cycle_time_ = ros::Time::now();
 }
 
 
@@ -292,8 +300,8 @@ void RangeSensorLayer::updateCostmap(sensor_msgs::Range& range_message, bool cle
   unsigned int aa, ab;
   if (worldToMap(tx, ty, aa, ab))
   {
-    setCost(aa, ab, 233);
-    expireTime_[aa][ab] = ros::Time::Time(time_of_life_);
+    setCost(aa, ab, to_cost(233));
+    expireTime_[aa][ab] = ros::Duration(time_of_life_);
     touch(tx, ty, &min_x_, &min_y_, &max_x_, &max_y_);
   }
 
@@ -385,9 +393,10 @@ void RangeSensorLayer::update_cell(double ox, double oy, double ot, double r, do
 
     ROS_DEBUG("%f %f | %f %f = %f", dx, dy, theta, phi, sensor);
     ROS_DEBUG("%f | %f %f | %f", prior, prob_occ, prob_not, new_prob);
-    expireTime_[x][y] = ros::Time::Time(time_of_life_ * new_prob);
-    unsigned char c = to_cost(new_prob);
-    setCost(x, y, c);
+
+    expireTime_[x][y] = ros::Duration(time_of_life_ * new_prob);
+
+    setCost(x, y, to_cost(new_prob));
   }
 }
 
@@ -400,21 +409,6 @@ void RangeSensorLayer::resetRange()
 void RangeSensorLayer::updateBounds(double robot_x, double robot_y, double robot_yaw,
                                     double* min_x, double* min_y, double* max_x, double* max_y)
 {
-  if (first_cycle_ == true)
-  {
-    ros::Time zero_time = ros::Time::Time(0);
-
-    map_num_cols_ = getSizeInCellsX();
-    map_num_rows_ = getSizeInCellsY();
-
-    expireTime_.resize(map_num_rows_, NULL);
-    for (uint i = 0; i < map_num_rows_; i++)
-      expireTime_[i].resize(map_num_cols_, zero_time); // this will allow you to now just use [][] to access stuff
-
-    last_update_cycle_time_ = ros::Time::now();
-    first_cycle_ = false;
-  }
-
   if (layered_costmap_->isRolling())
     updateOrigin(robot_x - getSizeInMetersX() / 2, robot_y - getSizeInMetersY() / 2);
 
@@ -450,18 +444,18 @@ void RangeSensorLayer::updateBounds(double robot_x, double robot_y, double robot
   {
     for (uint j = 0; j < map_num_rows_; j++)
     {
-      if (expireTime_[i][j] != ros::Time::Time(0))
+      if (expireTime_[i][j] > ros::Duration(0))
       {
-        expireTime_[i][j] = expireTime_[i][j] - (last_update_cycle_time_ - ros::Time::now());
-        if (expireTime_[i][j] <= ros::Time::Time(0))
+        expireTime_[i][j] = expireTime_[i][j] - ros::Duration(last_update_cycle_time_ - ros::Time::now());
+        if (expireTime_[i][j] <= ros::Duration(0))
         {
-          setCost(i, j, 0);
-          expireTime_[i][j] = ros::Time::Time(0);
+          setCost(i, j, costmap_2d::FREE_SPACE);
+          expireTime_[i][j] = ros::Duration(0);
         }
       }
     }
   }
-  last_update_cycle_time_ = ros::Time::now()
+  last_update_cycle_time_ = ros::Time::now();
 }
 
 void RangeSensorLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j)

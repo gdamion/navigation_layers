@@ -218,11 +218,11 @@ private:
   // TOF=3
   ushort radiation_type_;
 
-  bool first_cycle_;
+
   // Eigen::Matrix<ros::Time, Dynamic, Dynamic> ExpireTime;
   unsigned int map_num_rows_;
   unsigned int map_num_cols_;
-  std::vector<std::vector<ros::Time>> expireTime_;
+  std::vector<std::vector<ros::Duration>> expireTime_;
 
   // Сервис для динамической реконфигурации переменных
   dynamic_reconfigure::Server<range_sensor_layer::RangeSensorLayerConfig> *dsrv_;
