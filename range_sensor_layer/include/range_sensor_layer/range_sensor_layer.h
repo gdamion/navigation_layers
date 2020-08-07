@@ -226,44 +226,73 @@ private:
 
   std::vector <std::vector <double> > expireTime_;
 
-  void addTimers(unsigned int mx, unsigned int my, double time_of_life)
+  void time_of_cell_life_add(unsigned int mx, unsigned int my, double time_of_life)
   {
-      unsigned int vector_size;
+      unsigned int  vector_size;
+      double        wx, wy;
 
-      vector_size = expireTime_.size()
+      mapToWorld(mx, my, wx, wy);
+      std::vector<double> new_cell = {wx, wy, time_of_life};
+      vector_size = expireTime_.size();
       for (unsigned int i = 0; i < vector_size; i++)
       {
-        if (expireTime_[i][0] == mx && expireTime_[i][1] == my)
+        if (expireTime_[i][0] == wx && expireTime_[i][1] == wy)
         {
           expireTime_[i][2] = time_of_life;
           return ;
         }
       }
-
-      std::vector new_cell = {(double)mx, (double)my, time_of_life};
       expireTime_.push_back(new_cell);
   }
 
-  void updateTimers()
+  void time_of_cell_life_update()
   {
-    unsigned int vector_size;
-    unsigned int i;
+    unsigned int  vector_size;
+    unsigned int  i;
+    unsigned int  mx, my;
 
-    vector_size = expireTime_.size()
+    vector_size = expireTime_.size();
     i = 0;
     while (i < vector_size)
     {
       if (expireTime_[i][2] <= 0)
       {
-        setCost(expireTime_[i][0], expireTime_[i][1], costmap_2d::FREE_SPACE);
-        expireTime_.erase(i);
+        worldToMap(expireTime_[i][0], expireTime_[i][1], mx, my);
+        setCost(mx, my, costmap_2d::FREE_SPACE);
+        expireTime_.erase(expireTime_.begin() + i);
         vector_size--;
-        continue;
       }
-
-      expireTime_[i][2] -= ros::Duration(last_update_cycle_time_ - ros::Time::now()).toSec();
+      else
+        expireTime_[i][2] -= ros::Duration(last_update_cycle_time_ - ros::Time::now()).toSec();
     }
+    last_update_cycle_time_ = ros::Time::now();
   }
+
+  // void addTimers(unsigned int mx, unsigned int my, double time_of_life)
+  // {
+  //     unsigned int  vector_size;
+  //     double        wx, wy;
+  //     // int i;
+
+  //     mapToWorld(mx, my, wx, wy);
+  //     std::vector<double> new_cell = {wx, wy, time_of_life};
+  //     vector_size = expireTime_.size();
+  //     // i = std::find(expireTime_.begin(), expireTime_.end(), new_cell);
+  //     // if (i != expireTime_.end())
+  //     //   expireTime_[i][2] = time_of_life;
+  //     // else
+  //     //   expireTime_.push_back(new_cell);
+  //     for (unsigned int i = 0; i < vector_size; i++)
+  //     {
+  //       if (expireTime_[i][0] == wx && expireTime_[i][1] == wy)
+  //       {
+  //         expireTime_[i][2] = time_of_life;
+  //         return ;
+  //       }
+  //     }
+  //     expireTime_.push_back(new_cell);
+  // }
+
 
   // Сервис для динамической реконфигурации переменных
   dynamic_reconfigure::Server<range_sensor_layer::RangeSensorLayerConfig> *dsrv_;

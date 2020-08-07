@@ -296,10 +296,7 @@ void RangeSensorLayer::updateCostmap(sensor_msgs::Range& range_message, bool cle
   {
     setCost(aa, ab, to_cost(233));
     ROS_INFO("Center point");
-    if (aa >= map_num_X_ || ab >= map_num_Y_)
-      ROS_WARN("values bigger than borders, %u %u", aa, ab);
-    // expireTime_[aa][ab] = time_of_life_;
-    addTimers(aa, ab, time_of_life_);
+    time_of_cell_life_add(aa, ab, time_of_life_);
     ROS_INFO("Center point stamped");
     touch(tx, ty, &min_x_, &min_y_, &max_x_, &max_y_);
   }
@@ -393,14 +390,10 @@ void RangeSensorLayer::update_cell(double ox, double oy, double ot, double r, do
     ROS_DEBUG("%f %f | %f %f = %f", dx, dy, theta, phi, sensor);
     ROS_DEBUG("%f | %f %f | %f", prior, prob_occ, prob_not, new_prob);
 
-    ROS_INFO("Peripheral point");
-    if (x >= map_num_X_ || y >= map_num_Y_)
-      ROS_WARN("values bigger than borders, %u %u", x, y);
-    expireTime_[x][y] = time_of_life_ * new_prob;
-    ROS_INFO("Peripheral point stamped");
-
     setCost(x, y, to_cost(new_prob));
-    addTimers(x, y, time_of_life_ * new_prob);
+    ROS_INFO("Peripheral point");
+    time_of_cell_life_add(x, y, time_of_life_ * new_prob);
+    ROS_INFO("Peripheral point stamped");
   }
 }
 
@@ -445,9 +438,8 @@ void RangeSensorLayer::updateBounds(double robot_x, double robot_y, double robot
 
   // Tick timers and clear cell if timer is out
   ROS_INFO("Before tick cycle");
-
+  time_of_cell_life_update();
   ROS_INFO("After tick cycle");
-  last_update_cycle_time_ = ros::Time::now();
 }
 
 void RangeSensorLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i, int max_j)
